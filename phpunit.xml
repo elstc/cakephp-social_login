@@ -13,7 +13,7 @@
 
   <!-- Add any additional test suites you want to run here -->
   <testsuites>
-    <testsuite name="Elastic/SocialLogin Test Suite">
+    <testsuite name="SocialLogin Test Suite">
       <directory>./tests/TestCase</directory>
     </testsuite>
   </testsuites>

@@ -1,10 +1,11 @@
 {
-  "name": "Elastic/SocialLogin",
-  "description": "Elastic/SocialLogin plugin for CakePHP",
+  "name": "nojimage/cakephp-social_login",
+  "description": "SocialLogin plugin for CakePHP",
   "type": "cakephp-plugin",
   "require": {
     "php": ">=5.4.16",
-    "cakephp/cakephp": "~3.0"
+    "cakephp/cakephp": "~3.0",
+    "hybridauth/hybridauth": "~2.4.1"
   },
   "require-dev": {
     "phpunit/phpunit": "*"

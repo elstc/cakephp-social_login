@@ -1,4 +1,4 @@
-# Elastic/SocialLogin plugin for CakePHP 3
+# SocialLogin plugin for CakePHP 3
 
 ## Installation
 
