@@ -9,3 +9,7 @@ The recommended way to install composer packages is:
 ```
 composer require Elastic/SocialLogin
 ```
+
+##
+
+This plugin is inspired from https://github.com/ADmad/CakePHP-HybridAuth

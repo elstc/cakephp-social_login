@@ -35,6 +35,15 @@ class CreateSocialAccounts extends AbstractMigration
             'limit' => 255,
             'null' => false,
         ]);
+        $table->addColumn('provider_username', 'string', [
+            'default' => null,
+            'limit' => 255,
+            'null' => true,
+        ]);
+        $table->addColumn('user_profile', 'text', [
+            'default' => null,
+            'null' => true,
+        ]);
         $table->addTimestamps();
         // Don't to overlap the account relation at the same table
         $table->addIndex(['table', 'provider', 'provider_uid'], ['unique' => true, 'name' => 'U_social_login_identifier']);
