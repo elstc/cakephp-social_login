@@ -7,6 +7,7 @@
  * For full copyright and license information, please see the LICENSE.txt
  */
 use Cake\Core\Configure;
+use Cake\Core\Plugin;
 
 if (file_exists(CONFIG . 'hybridauth.php')) {
     Configure::load('hybridauth');
@@ -21,4 +22,8 @@ if (file_exists(CONFIG . 'hybridauth.php')) {
         'debug_file' => LOGS . 'hybridauth.log',
     ];
     Configure::write('HybridAuth', $config);
+}
+
+if (Plugin::routes('Elastic/SocialLogin') === false) {
+    require __DIR__ . DS . 'routes.php';
 }

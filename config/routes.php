@@ -2,10 +2,7 @@
 
 use Cake\Routing\Router;
 
-Router::scope('/social_login', function ($routes) {
-    $routes->connect('/:action', ['plugin' => 'Elastic/SocialLogin', 'controller' => 'SocialLogin']);
-});
-
-Router::plugin('Elastic/SocialLogin', function ($routes) {
+Router::plugin('Elastic/SocialLogin', ['path' => '/social_login'], function ($routes) {
+    $routes->connect('/:action', ['controller' => 'SocialLogin']);
     $routes->fallbacks('InflectedRoute');
 });
