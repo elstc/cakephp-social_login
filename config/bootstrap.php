@@ -23,6 +23,9 @@ if (file_exists(CONFIG . 'hybridauth.php')) {
     ];
     Configure::write('HybridAuth', $config);
 }
+if (file_exists(CONFIG . 'hybridauth_local.php')) {
+    Configure::load('hybridauth_local');
+}
 
 if (Plugin::routes('Elastic/SocialLogin') === false) {
     require __DIR__ . DS . 'routes.php';
