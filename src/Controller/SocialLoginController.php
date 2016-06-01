@@ -116,7 +116,8 @@ class SocialLoginController extends AppController
             $this->Flash->set(__('アカウント連携に失敗しました。'));
         }
 
-        return $this->redirect($this->Auth->redirectUrl());
+        $redirectTo = $auth->config('associatedRedirect') ?: $this->Auth->redirectUrl();
+        return $this->redirect($redirectTo);
     }
 
     /**
@@ -137,7 +138,8 @@ class SocialLoginController extends AppController
             $this->Flash->set(__('アカウント連携の解除に失敗しました。'));
         }
 
-        return $this->redirect($this->Auth->redirectUrl());
+        $redirectTo = $auth->config('associatedRedirect') ?: $this->Auth->redirectUrl();
+        return $this->redirect($redirectTo);
     }
 
 }

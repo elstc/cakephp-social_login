@@ -31,20 +31,21 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     public function __construct(ComponentRegistry $registry, array $config = array())
     {
         $this->config([
-            'accountTable' => 'Elastic/SocialLogin.SocialAccounts',
-            'fields' => [
-                'provider' => 'provider',
-                'provider_uid' => 'provider_uid',
+            'accountTable'         => 'Elastic/SocialLogin.SocialAccounts',
+            'fields'               => [
+                'provider'          => 'provider',
+                'provider_uid'      => 'provider_uid',
                 'openid_identifier' => 'openid_identifier'
             ],
-            'hauth_return_to' => null,
-            'hauth_associate_user' => Router::url(
-                [
-                'plugin' => 'Elastic/SocialLogin',
+            // ソーシャルアカウント連携完了のリダイレクト先
+            // null => Auth->redirectUrl()
+            'associatedRedirect' => null,
+            // ソーシャルで認証完了後のアプリケーション側ログイン処理のリダイレクト先
+            'hauthLoginAction'   => [
+                'plugin'     => 'Elastic/SocialLogin',
                 'controller' => 'SocialLogin',
-                'action' => 'associate',
-                ], true
-            ),
+                'action'     => 'authenticated'
+            ],
         ]);
         parent::__construct($registry, $config);
     }
@@ -72,17 +73,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         }
 
         // 認証後の戻りURLを生成
-        if ($this->_config['hauth_return_to']) {
-            $returnTo = Router::url($this->_config['hauth_return_to'], true);
-        } else {
-            $returnTo = Router::url(
-                    [
-                    'plugin' => 'Elastic/SocialLogin',
-                    'controller' => 'SocialLogin',
-                    'action' => 'authenticated'
-                    ], true
-            );
-        }
+        $returnTo = Router::url($this->_config['hauthLoginAction'], true);
 
         // 認証リクエストの実行
         $adapter = $this->authenticateWithHybridAuth($request, $returnTo);
@@ -165,13 +156,13 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         $table = TableRegistry::get($this->_config['accountTable']);
 
         $conditions = [
-            'table' => $this->_config['userModel'],
+            'table'      => $userModel->registryAlias(),
             'foreign_id' => $user[$userModel->primaryKey()],
-            'provider' => $provider,
+            'provider'   => $provider,
         ];
 
         $data = [
-            'provider_uid' => $userProfile->identifier,
+            'provider_uid'      => $userProfile->identifier,
             'provider_username' => $userProfile->displayName,
         ];
 
@@ -208,9 +199,9 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         $table = TableRegistry::get($this->_config['accountTable']);
 
         $conditions = [
-            'table' => $this->_config['userModel'],
+            'table'      => $this->_config['userModel'],
             'foreign_id' => $user[$userModel->primaryKey()],
-            'provider' => $provider,
+            'provider'   => $provider,
         ];
 
         $association = $table->find()->where($conditions)->first();
@@ -243,9 +234,9 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         if (empty($config['base_url'])) {
             $config['base_url'] = Router::url(
                     [
-                    'plugin' => 'Elastic/SocialLogin',
+                    'plugin'     => 'Elastic/SocialLogin',
                     'controller' => 'SocialLogin',
-                    'action' => 'endpoint'
+                    'action'     => 'endpoint'
                     ], true
             );
         }
@@ -299,14 +290,13 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         }
 
         $user = false;
-        $userModel = $this->_config['userModel'];
-        list(, $userAlias) = pluginSplit($userModel);
+        $userModel = TableRegistry::get($this->_config['userModel']);
 
         try {
             // ユーザーIDの取得
             $userId = $this->_getUserIdFromSocialAccounts($userModel, $provider, $providerProfile);
             $conditions = [
-                $userAlias . '.' . TableRegistry::get($userModel)->primaryKey() => $userId,
+                $userModel->aliasField($userModel->primaryKey()) => $userId,
             ];
             $user = $this->_fetchUserFromDb($conditions);
         } catch (RecordNotFoundException $e) {
@@ -319,7 +309,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     /**
      * アカウントテーブルからユーザーidを取得
      *
-     * @param string $userModel
+     * @param \Cake\ORM\Table $userModel
      * @param string $provider
      * @param \Hybrid_User_Profile $providerProfile
      * @return mixed User.id
@@ -327,18 +317,16 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     protected function _getUserIdFromSocialAccounts($userModel, $provider, $providerProfile)
     {
-        $accountTable = $this->_config['accountTable'];
-        list(, $accountAlias) = pluginSplit($accountTable);
+        $accountTable = TableRegistry::get($this->_config['accountTable']);
 
         $fields = $this->_config['fields'];
         $conditions = [
-            $accountAlias . '.' . 'table' => $userModel,
-            $accountAlias . '.' . $fields['provider'] => $provider,
-            $accountAlias . '.' . $fields['provider_uid'] => $providerProfile->identifier
+            $accountTable->aliasField('table')                 => $userModel->registryAlias(),
+            $accountTable->aliasField($fields['provider'])     => $provider,
+            $accountTable->aliasField($fields['provider_uid']) => $providerProfile->identifier
         ];
 
-        $account = TableRegistry::get($accountTable)
-            ->find()
+        $account = $accountTable->find()
             ->where($conditions)
             ->hydrate(false)
             ->firstOrFail();
@@ -412,5 +400,4 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         $this->hybridAuth->logoutAllProviders();
         return true;
     }
-
 }
