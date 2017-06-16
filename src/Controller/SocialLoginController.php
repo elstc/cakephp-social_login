@@ -2,9 +2,12 @@
 
 namespace Elastic\SocialLogin\Controller;
 
-use Zonde\Portal\Controller\AppController;
+use Cake\Controller\Component\FlashComponent;
+use Cake\Controller\Controller;
 use Cake\Event\Event;
+use Cake\Log\Log;
 use Cake\Routing\Router;
+use Exception;
 
 /**
  * SocialLogin Controller
@@ -12,15 +15,15 @@ use Cake\Routing\Router;
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  *
- * @property \Cake\Controller\Component\FlashComponent $Flash
+ * @property FlashComponent $Flash
  */
-class SocialLoginController extends AppController
+class SocialLoginController extends Controller
 {
 
     /**
      * Allow methods 'endpoint' and 'authenticated'.
      *
-     * @param \Cake\Event\Event $event Before filter event.
+     * @param Event $event Before filter event.
      * @return void
      */
     public function beforeFilter(Event $event)
@@ -39,8 +42,8 @@ class SocialLoginController extends AppController
         $this->request->session()->start();
         try {
             \Hybrid_Endpoint::process();
-        } catch (\Exception $e) {
-            \Cake\Log\Log::error($e->getMessage());
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
         }
     }
 
@@ -50,23 +53,24 @@ class SocialLoginController extends AppController
      *
      * Hyridauth's `hauth_return_to` is set to this action.
      *
-     * @return \Cake\Network\Response
+     * @return \Cake\Http\Response
      */
     public function authenticated()
     {
         $user = $this->Auth->identify();
         if ($user) {
             $this->Auth->setUser($user);
+
             return $this->redirect($this->Auth->redirectUrl());
         }
+
         return $this->redirect($this->Auth->config('loginAction'));
     }
 
     /**
      * ユーザーと外部アカウントの紐付けリクエスト
      *
-     * @return \Cake\Network\Response
-     *
+     * @return void
      * @example inView.
      *
      * ```
@@ -88,11 +92,12 @@ class SocialLoginController extends AppController
         $auth->logoutHybridAuth();
 
         $returnTo = Router::url(
-                [
+            [
                 'plugin' => 'Elastic/SocialLogin',
                 'controller' => 'SocialLogin',
                 'action' => 'association'
-                ], true
+            ],
+            true
         );
 
         $auth->authenticateWithHybridAuth($this->request, $returnTo);
@@ -117,6 +122,7 @@ class SocialLoginController extends AppController
         }
 
         $redirectTo = $auth->config('associatedRedirect') ?: $this->Auth->redirectUrl();
+
         return $this->redirect($redirectTo);
     }
 
@@ -139,7 +145,7 @@ class SocialLoginController extends AppController
         }
 
         $redirectTo = $auth->config('associatedRedirect') ?: $this->Auth->redirectUrl();
+
         return $this->redirect($redirectTo);
     }
-
 }

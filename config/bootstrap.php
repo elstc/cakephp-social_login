@@ -18,7 +18,7 @@ if (file_exists(CONFIG . 'hybridauth.php')) {
                 'enabled' => true
             ]
         ],
-        'debug_mode' => (bool) Configure::read('debug'),
+        'debug_mode' => (bool)Configure::read('debug'),
         'debug_file' => LOGS . 'hybridauth.log',
     ];
     Configure::write('HybridAuth', $config);

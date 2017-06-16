@@ -3,15 +3,18 @@
 namespace Elastic\SocialLogin\Auth;
 
 use Cake\Auth\BaseAuthenticate;
-use Cake\Core\Configure;
 use Cake\Controller\ComponentRegistry;
-use Cake\Event\Event;
-use Cake\Network\Request;
-use Cake\Network\Response;
-use Cake\Routing\Router;
-use Cake\ORM\TableRegistry;
+use Cake\Core\Configure;
 use Cake\Datasource\Exception\RecordNotFoundException;
+use Cake\Event\Event;
+use Cake\Http\Response;
+use Cake\Http\ServerRequest;
+use Cake\Log\Log;
+use Cake\ORM\Table;
+use Cake\ORM\TableRegistry;
+use Cake\Routing\Router;
 use Hybrid_Auth;
+use RuntimeException;
 
 class SocialLoginAuthenticate extends BaseAuthenticate
 {
@@ -28,23 +31,23 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * @param ComponentRegistry $registry The Component registry used on this request.
      * @param array $config Array of config to use.
      */
-    public function __construct(ComponentRegistry $registry, array $config = array())
+    public function __construct(ComponentRegistry $registry, array $config = [])
     {
         $this->config([
-            'accountTable'         => 'Elastic/SocialLogin.SocialAccounts',
-            'fields'               => [
-                'provider'          => 'provider',
-                'provider_uid'      => 'provider_uid',
+            'accountTable' => 'Elastic/SocialLogin.SocialAccounts',
+            'fields' => [
+                'provider' => 'provider',
+                'provider_uid' => 'provider_uid',
                 'openid_identifier' => 'openid_identifier'
             ],
             // ソーシャルアカウント連携完了のリダイレクト先
             // null => Auth->redirectUrl()
             'associatedRedirect' => null,
             // ソーシャルで認証完了後のアプリケーション側ログイン処理のリダイレクト先
-            'hauthLoginAction'   => [
-                'plugin'     => 'Elastic/SocialLogin',
+            'hauthLoginAction' => [
+                'plugin' => 'Elastic/SocialLogin',
                 'controller' => 'SocialLogin',
-                'action'     => 'authenticated'
+                'action' => 'authenticated'
             ],
         ]);
         parent::__construct($registry, $config);
@@ -57,7 +60,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * @param Response $response A response object that can have headers added.
      * @return array|bool User array on success, false on failure.
      */
-    public function authenticate(\Cake\Network\Request $request, \Cake\Network\Response $response)
+    public function authenticate(ServerRequest $request, Response $response)
     {
         $fields = $this->_config['fields'];
 
@@ -88,11 +91,11 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     /**
      * HybridAuthを利用して認証リクエストを実行する
      *
-     * @param Request $request
-     * @param string $returnTo
+     * @param ServerRequest $request Request instance.
+     * @param string $returnTo リダイレクト先
      * @return \Hybrid_Provider_Adapter
      */
-    public function authenticateWithHybridAuth(Request $request, $returnTo)
+    public function authenticateWithHybridAuth(ServerRequest $request, $returnTo)
     {
         $fields = $this->_config['fields'];
         $provider = $this->_checkFields($request, $fields);
@@ -107,34 +110,37 @@ class SocialLoginAuthenticate extends BaseAuthenticate
 
         $this->_init($request);
         $adapter = $this->hybridAuth->authenticate($provider, $params);
+
         return $adapter;
     }
 
     /**
      * Check if a provider already connected return user record if available
      *
-     * @param Request $request Request instance.
+     * @param ServerRequest $request Request instance.
      * @return array|bool User array on success, false on failure.
      */
-    public function getUser(Request $request)
+    public function getUser(ServerRequest $request)
     {
         $this->_init($request);
         $idps = $this->hybridAuth->getConnectedProviders();
         foreach ($idps as $provider) {
             $adapter = $this->hybridAuth->getAdapter($provider);
+
             return $this->_getUser($provider, $adapter);
         }
+
         return false;
     }
 
     /**
      * ユーザーと外部アカウントの紐付け
      *
-     * @param Request $request
-     * @param array $user
-     * @return boolean
+     * @param ServerRequest $request Request instance.
+     * @param array $user ログインユーザーデータ
+     * @return bool
      */
-    public function associateWithUser(Request $request, $user)
+    public function associateWithUser(ServerRequest $request, $user)
     {
         $this->_init($request);
         $idps = $this->hybridAuth->getConnectedProviders();
@@ -156,13 +162,13 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         $table = TableRegistry::get($this->_config['accountTable']);
 
         $conditions = [
-            'table'      => $userModel->registryAlias(),
+            'table' => $userModel->registryAlias(),
             'foreign_id' => $user[$userModel->primaryKey()],
-            'provider'   => $provider,
+            'provider' => $provider,
         ];
 
         $data = [
-            'provider_uid'      => $userProfile->identifier,
+            'provider_uid' => $userProfile->identifier,
             'provider_username' => $userProfile->displayName,
         ];
 
@@ -182,16 +188,17 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             return true;
         }
         // TODO: エラー処理
-        \Cake\Log\Log::debug($association->errors());
+        Log::debug($association->errors());
+
         return false;
     }
 
     /**
      * ユーザーと外部アカウントの紐付け解除
      *
-     * @param string $provider
-     * @param array $user
-     * @return boolean
+     * @param string $provider ログインプロバイダー名
+     * @param array $user ログインユーザーデータ
+     * @return bool
      */
     public function unlinkWithUser($provider, $user)
     {
@@ -199,9 +206,9 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         $table = TableRegistry::get($this->_config['accountTable']);
 
         $conditions = [
-            'table'      => $this->_config['userModel'],
+            'table' => $this->_config['userModel'],
             'foreign_id' => $user[$userModel->primaryKey()],
-            'provider'   => $provider,
+            'provider' => $provider,
         ];
 
         $association = $table->find()->where($conditions)->first();
@@ -215,7 +222,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         }
 
         // TODO: エラー処理
-        \Cake\Log\Log::debug($association->errors());
+        Log::debug($association->errors());
 
         return false;
     }
@@ -223,28 +230,27 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     /**
      * Initialize hybrid auth
      *
-     * @param \Cake\Network\Request $request Request instance.
+     * @param ServerRequest $request Request instance.
      * @return void
-     * @throws \RuntimeException Incase case of unknown error.
+     * @throws RuntimeException Incase case of unknown error.
      */
-    protected function _init(Request $request)
+    protected function _init(ServerRequest $request)
     {
         $request->session()->start();
         $config = Configure::read('HybridAuth');
         if (empty($config['base_url'])) {
-            $config['base_url'] = Router::url(
-                    [
-                    'plugin'     => 'Elastic/SocialLogin',
-                    'controller' => 'SocialLogin',
-                    'action'     => 'endpoint'
-                    ], true
-            );
+            $baseUrl = [
+                'plugin' => 'Elastic/SocialLogin',
+                'controller' => 'SocialLogin',
+                'action' => 'endpoint'
+            ];
+            $config['base_url'] = Router::url($baseUrl, true);
         }
         try {
             $this->hybridAuth = new \Hybrid_Auth($config);
         } catch (\Exception $e) {
             if ($e->getCode() < 5) {
-                throw new \RuntimeException($e->getMessage());
+                throw new RuntimeException($e->getMessage());
             } else {
                 $this->_registry->Auth->flash($e->getMessage());
                 $this->hybridAuth = new \Hybrid_Auth($config);
@@ -255,10 +261,10 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     /**
      * Checks the fields to ensure they are supplied.
      *
-     * @param \Cake\Network\Request $request The request that contains login information.
+     * @param ServerRequest $request The request that contains login information.
      * @return bool False if the fields have not been supplied. True if they exist.
      */
-    protected function _checkFields(Request $request)
+    protected function _checkFields(ServerRequest $request)
     {
         $fields = $this->_config['fields'];
         $provider = $request->data($fields['provider']);
@@ -267,6 +273,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         ) {
             return false;
         }
+
         return $provider;
     }
 
@@ -309,9 +316,9 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     /**
      * アカウントテーブルからユーザーidを取得
      *
-     * @param \Cake\ORM\Table $userModel
-     * @param string $provider
-     * @param \Hybrid_User_Profile $providerProfile
+     * @param Table $userModel アカウントテーブル
+     * @param string $provider ログインプロバイダ名
+     * @param \Hybrid_User_Profile $providerProfile プロバイダから取得したユーザープロファイル
      * @return mixed User.id
      * @throws RecordNotFoundException
      */
@@ -321,8 +328,8 @@ class SocialLoginAuthenticate extends BaseAuthenticate
 
         $fields = $this->_config['fields'];
         $conditions = [
-            $accountTable->aliasField('table')                 => $userModel->registryAlias(),
-            $accountTable->aliasField($fields['provider'])     => $provider,
+            $accountTable->aliasField('table') => $userModel->registryAlias(),
+            $accountTable->aliasField($fields['provider']) => $provider,
             $accountTable->aliasField($fields['provider_uid']) => $providerProfile->identifier
         ];
 
@@ -369,12 +376,17 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             if (isset($this->_config['fields']['password'])) {
                 unset($result[$this->_config['fields']['password']]);
             }
+
             return $result;
         }
 
         return false;
     }
 
+    /**
+     *
+     * @return array
+     */
     public function implementedEvents()
     {
         return [
@@ -385,19 +397,25 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     /**
      * event on 'Auth.logout'
      *
-     * @param Event $event
-     * @param array $user
-     * @return boolean
+     * @param Event $event A Event
+     * @param array $user logged in user data
+     * @return bool
      */
     public function onLogout(Event $event, array $user)
     {
         return $this->logoutHybridAuth();
     }
 
+    /**
+     * Logged out from all HybridAuth providers.
+     *
+     * @return bool
+     */
     public function logoutHybridAuth()
     {
         $this->_init($this->_registry->getController()->request);
         $this->hybridAuth->logoutAllProviders();
+
         return true;
     }
 }

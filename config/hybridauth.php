@@ -14,6 +14,6 @@ $config['HybridAuth'] = [
             'enabled' => true
         ],
     ],
-    'debug_mode' => (bool) Configure::read('debug'),
+    'debug_mode' => (bool)Configure::read('debug'),
     'debug_file' => LOGS . 'social_login.log',
 ];

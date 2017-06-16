@@ -2,8 +2,11 @@
 
 namespace Elastic\SocialLogin\Model\Entity;
 
+use Cake\Datasource\EntityInterface;
+use Cake\I18n\FrozenTime;
 use Cake\ORM\Entity;
 use Cake\ORM\TableRegistry;
+use stdClass;
 
 /**
  * SocialAccount Entity.
@@ -13,10 +16,10 @@ use Cake\ORM\TableRegistry;
  * @property string $provider
  * @property string $provider_uid
  * @property string $provider_username
- * @property \stdClass $user_profile
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
- * @property Entity $user
+ * @property stdClass $user_profile
+ * @property FrozenTime $created_at
+ * @property FrozenTime $updated_at
+ * @property EntityInterface $user
  * @property-read \Hybrid_User_Profile $user_profile_obj
  */
 class SocialAccount extends Entity
@@ -53,7 +56,7 @@ class SocialAccount extends Entity
 
     /**
      *
-     * @param \Hybrid_User_Profile $userProfile
+     * @param \Hybrid_User_Profile|string $userProfile recieved user data
      * @return string
      */
     protected function _setUserProfile($userProfile)
@@ -61,13 +64,18 @@ class SocialAccount extends Entity
         if (!is_string($userProfile)) {
             $userProfile = json_encode($userProfile, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
+
         return $userProfile;
     }
 
+    /**
+     * ユーザーの取得
+     *
+     * @return EntityInterface
+     */
     protected function _getUser()
     {
         return TableRegistry::get($this->_properties['table'])
                 ->get($this->_properties['foreign_id']);
     }
-
 }
