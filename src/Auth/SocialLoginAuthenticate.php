@@ -43,6 +43,9 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             // ソーシャルアカウント連携完了のリダイレクト先
             // null => Auth->redirectUrl()
             'associatedRedirect' => null,
+            // システムアカウントとソーシャルアカウントの紐付け時リダイレクト先
+            // @see AssociateAccountsTrait
+            'associationReturnTo' => null,
             // ソーシャルで認証完了後のアプリケーション側ログイン処理のリダイレクト先
             'hauthLoginAction' => [
                 'plugin' => 'Elastic/SocialLogin',
