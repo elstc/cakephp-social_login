@@ -14,7 +14,10 @@ use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use Cake\Routing\Router;
 use Hybrid_Auth;
+use Hybrid_Provider_Adapter;
+use Hybrid_User_Profile;
 use RuntimeException;
+use UnexpectedValueException;
 
 class SocialLoginAuthenticate extends BaseAuthenticate
 {
@@ -65,10 +68,10 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     public function authenticate(ServerRequest $request, Response $response)
     {
-        $fields = $this->_config['fields'];
+        $fields = $this->getConfig('fields');
 
         // プロバイダ未指定の場合は、認証戻りのためユーザーデータを取得する
-        if (!$request->data($fields['provider'])) {
+        if (!$request->getData($fields['provider'])) {
             return $this->getUser($request);
         }
 
@@ -79,7 +82,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         }
 
         // 認証後の戻りURLを生成
-        $returnTo = Router::url($this->_config['hauthLoginAction'], true);
+        $returnTo = Router::url($this->getConfig('hauthLoginAction'), true);
 
         // 認証リクエストの実行
         $adapter = $this->authenticateWithHybridAuth($request, $returnTo);
@@ -96,11 +99,11 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      *
      * @param ServerRequest $request Request instance.
      * @param string $returnTo リダイレクト先
-     * @return \Hybrid_Provider_Adapter
+     * @return Hybrid_Provider_Adapter
      */
     public function authenticateWithHybridAuth(ServerRequest $request, $returnTo)
     {
-        $fields = $this->_config['fields'];
+        $fields = $this->getConfig('fields');
         $provider = $this->_checkFields($request, $fields);
         if (!$provider) {
             return false;
@@ -108,7 +111,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
 
         $params = ['hauth_return_to' => $returnTo];
         if ($provider === 'OpenID') {
-            $params['openid_identifier'] = $request->data[$fields['openid_identifier']];
+            $params['openid_identifier'] = $request->getData($fields['openid_identifier']);
         }
 
         $this->_init($request);
@@ -146,23 +149,22 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     public function associateWithUser(ServerRequest $request, $user)
     {
         $this->_init($request);
-        $idps = $this->hybridAuth->getConnectedProviders();
-        foreach ($idps as $provider) {
+        $providers = $this->hybridAuth->getConnectedProviders();
+        foreach ($providers as $provider) {
             $adapter = $this->hybridAuth->getAdapter($provider);
             $userProfile = $adapter->getUserProfile();
-            /* @var $userProfile \Hybrid_User_Profile */
+            /* @var $userProfile Hybrid_User_Profile */
             if (!empty($userProfile->identifier)) {
                 break;
             }
         }
 
-        //
         if (empty($userProfile)) {
-            return false;
+            throw new UnexpectedValueException(__('ソーシャルアカウントが取得できません。'));
         }
 
-        $userModel = TableRegistry::get($this->_config['userModel']);
-        $table = TableRegistry::get($this->_config['accountTable']);
+        $userModel = TableRegistry::get($this->getConfig('userModel'));
+        $table = TableRegistry::get($this->getConfig('accountTable'));
 
         $conditions = [
             'table' => $userModel->registryAlias(),
@@ -187,13 +189,13 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         }
         $association->set('user_profile', $userProfile);
 
-        if ($table->save($association)) {
-            return true;
+        if (!$table->save($association)) {
+            // エラー処理
+            Log::debug($association->errors());
+            throw new \RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
         }
-        // TODO: エラー処理
-        Log::debug($association->errors());
 
-        return false;
+        return true;
     }
 
     /**
@@ -205,11 +207,11 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     public function unlinkWithUser($provider, $user)
     {
-        $userModel = TableRegistry::get($this->_config['userModel']);
-        $table = TableRegistry::get($this->_config['accountTable']);
+        $userModel = TableRegistry::get($this->getConfig('userModel'));
+        $table = TableRegistry::get($this->getConfig('accountTable'));
 
         $conditions = [
-            'table' => $this->_config['userModel'],
+            'table' => $this->getConfig('userModel'),
             'foreign_id' => $user[$userModel->primaryKey()],
             'provider' => $provider,
         ];
@@ -217,17 +219,16 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         $association = $table->find()->where($conditions)->first();
 
         if (empty($association)) {
-            return false;
+            throw new UnexpectedValueException(__('紐付け解除対象のソーシャルアカウントが取得できません。'));
         }
 
-        if ($table->delete($association)) {
-            return true;
+        if (!$table->delete($association)) {
+            // エラー処理
+            Log::debug($association->errors());
+            throw new \RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
         }
 
-        // TODO: エラー処理
-        Log::debug($association->errors());
-
-        return false;
+        return true;
     }
 
     /**
@@ -255,6 +256,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             if ($e->getCode() < 5) {
                 throw new RuntimeException($e->getMessage());
             } else {
+                Log::debug($e->getTraceAsString());
                 $this->_registry->Auth->flash($e->getMessage());
                 $this->hybridAuth = new \Hybrid_Auth($config);
             }
@@ -269,10 +271,10 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     protected function _checkFields(ServerRequest $request)
     {
-        $fields = $this->_config['fields'];
-        $provider = $request->data($fields['provider']);
+        $fields = $this->getConfig('fields');
+        $provider = $request->getData($fields['provider']);
         if (empty($provider) ||
-            ($provider === 'OpenID' && !$request->data($fields['openid_identifier']))
+            ($provider === 'OpenID' && !$request->getData($fields['openid_identifier']))
         ) {
             return false;
         }
@@ -290,7 +292,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * @param object $adapter Hybrid auth adapter instance.
      * @return array User record
      */
-    protected function _getUser($provider, \Hybrid_Provider_Adapter $adapter)
+    protected function _getUser($provider, Hybrid_Provider_Adapter $adapter)
     {
         try {
             $providerProfile = $adapter->getUserProfile();
@@ -300,7 +302,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         }
 
         $user = false;
-        $userModel = TableRegistry::get($this->_config['userModel']);
+        $userModel = TableRegistry::get($this->getConfig('userModel'));
 
         try {
             // ユーザーIDの取得
@@ -311,6 +313,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             $user = $this->_fetchUserFromDb($conditions);
         } catch (RecordNotFoundException $e) {
             // ユーザーの紐付けがない場合
+            $user = false;
         }
 
         return $user;
@@ -321,15 +324,15 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      *
      * @param Table $userModel アカウントテーブル
      * @param string $provider ログインプロバイダ名
-     * @param \Hybrid_User_Profile $providerProfile プロバイダから取得したユーザープロファイル
+     * @param Hybrid_User_Profile $providerProfile プロバイダから取得したユーザープロファイル
      * @return mixed User.id
      * @throws RecordNotFoundException
      */
     protected function _getUserIdFromSocialAccounts($userModel, $provider, $providerProfile)
     {
-        $accountTable = TableRegistry::get($this->_config['accountTable']);
+        $accountTable = TableRegistry::get($this->getConfig('accountTable'));
 
-        $fields = $this->_config['fields'];
+        $fields = $this->getConfig('fields');
         $conditions = [
             $accountTable->aliasField('table') => $userModel->registryAlias(),
             $accountTable->aliasField($fields['provider']) => $provider,
@@ -352,19 +355,19 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     protected function _fetchUserFromDb(array $conditions)
     {
-        $userModel = $this->_config['userModel'];
+        $userModel = $this->getConfig('userModel');
         list(, $userAlias) = pluginSplit($userModel);
 
         // ユーザーテーブルから取得
         $table = TableRegistry::get($userModel);
 
-        $scope = $this->_config['scope'];
+        $scope = $this->getConfig('scope');
         if ($scope) {
             $conditions = array_merge($conditions, $scope);
         }
 
         $query = $table->find('all');
-        $contain = $this->_config['contain'];
+        $contain = $this->getConfig('contain');
 
         if ($contain) {
             $query = $query->contain($contain);
@@ -376,8 +379,8 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             ->first();
 
         if ($result) {
-            if (isset($this->_config['fields']['password'])) {
-                unset($result[$this->_config['fields']['password']]);
+            if (isset($this->getConfig('fields.password'))) {
+                unset($result[$this->getConfig('fields.password')]);
             }
 
             return $result;
