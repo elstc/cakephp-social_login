@@ -130,14 +130,37 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     public function getUser(ServerRequest $request)
     {
         $this->_init($request);
-        $idps = $this->hybridAuth->getConnectedProviders();
-        foreach ($idps as $provider) {
+        $providers = $this->hybridAuth->getConnectedProviders();
+        foreach ($providers as $provider) {
             $adapter = $this->hybridAuth->getAdapter($provider);
 
             return $this->_getUser($provider, $adapter);
         }
 
         return false;
+    }
+
+    /**
+     * HybridAuthからユーザプロファイルの取得
+     *
+     * @param Hybrid_Auth $hybridAuth a HybridAuth instance.
+     * @return array [$provider, \Hybrid_User_Profile]
+     * @throws UnexpectedValueException
+     */
+    public function getHybridUserProfile(Hybrid_Auth $hybridAuth)
+    {
+        $providers = $hybridAuth->getConnectedProviders();
+
+        foreach ($providers as $provider) {
+            $adapter = $hybridAuth->getAdapter($provider);
+            $userProfile = $adapter->getUserProfile();
+            /* @var $userProfile \Hybrid_User_Profile */
+            if (!empty($userProfile->identifier)) {
+                return [$provider, $userProfile];
+            }
+        }
+
+        throw new UnexpectedValueException(__('ソーシャルアカウントが取得できません。'));
     }
 
     /**
@@ -150,26 +173,15 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     public function associateWithUser(ServerRequest $request, $user)
     {
         $this->_init($request);
-        $providers = $this->hybridAuth->getConnectedProviders();
-        foreach ($providers as $provider) {
-            $adapter = $this->hybridAuth->getAdapter($provider);
-            $userProfile = $adapter->getUserProfile();
-            /* @var $userProfile Hybrid_User_Profile */
-            if (!empty($userProfile->identifier)) {
-                break;
-            }
-        }
+        list($provider, $userProfile) = $this->getHybridUserProfile($this->hybridAuth);
+        /* @var $userProfile \Hybrid_User_Profile */
 
-        if (empty($userProfile)) {
-            throw new UnexpectedValueException(__('ソーシャルアカウントが取得できません。'));
-        }
-
-        $userModel = TableRegistry::get($this->getConfig('userModel'));
-        $table = TableRegistry::get($this->getConfig('accountTable'));
+        $usersTable = TableRegistry::get($this->getConfig('userModel'));
+        $accountsTable = TableRegistry::get($this->getConfig('accountTable'));
 
         $conditions = [
-            'table' => $userModel->registryAlias(),
-            'foreign_id' => $user[$userModel->primaryKey()],
+            'table' => $usersTable->registryAlias(),
+            'foreign_id' => $user[$usersTable->primaryKey()],
             'provider' => $provider,
         ];
 
@@ -178,21 +190,21 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             'provider_username' => $userProfile->displayName,
         ];
 
-        $association = $table->find()->where($conditions)->first();
+        $foreignAccount = $accountsTable->find()->where($conditions)->first();
 
-        if (empty($association)) {
+        if (empty($foreignAccount)) {
             // 新規作成
             $data = array_merge($conditions, $data);
-            $association = $table->newEntity($data);
+            $foreignAccount = $accountsTable->newEntity($data);
         } else {
             // 更新
-            $association = $table->patchEntity($association, $data);
+            $foreignAccount = $accountsTable->patchEntity($foreignAccount, $data);
         }
-        $association->set('user_profile', $userProfile);
+        $foreignAccount->set('user_profile', $userProfile);
 
-        if (!$table->save($association)) {
+        if (!$accountsTable->save($foreignAccount)) {
             // エラー処理
-            Log::debug($association->errors());
+            Log::debug($foreignAccount->errors());
             throw new \RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
         }
 
@@ -208,22 +220,22 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     public function unlinkWithUser($provider, $user)
     {
-        $userModel = TableRegistry::get($this->getConfig('userModel'));
-        $table = TableRegistry::get($this->getConfig('accountTable'));
+        $usersTable = TableRegistry::get($this->getConfig('userModel'));
+        $accountsTable = TableRegistry::get($this->getConfig('accountTable'));
 
         $conditions = [
             'table' => $this->getConfig('userModel'),
-            'foreign_id' => $user[$userModel->primaryKey()],
+            'foreign_id' => $user[$usersTable->primaryKey()],
             'provider' => $provider,
         ];
 
-        $association = $table->find()->where($conditions)->first();
+        $association = $accountsTable->find()->where($conditions)->first();
 
         if (empty($association)) {
             throw new UnexpectedValueException(__('紐付け解除対象のソーシャルアカウントが取得できません。'));
         }
 
-        if (!$table->delete($association)) {
+        if (!$accountsTable->delete($association)) {
             // エラー処理
             Log::debug($association->errors());
             throw new \RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
@@ -283,13 +295,13 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         }
 
         $user = false;
-        $userModel = TableRegistry::get($this->getConfig('userModel'));
+        $usersTable = TableRegistry::get($this->getConfig('userModel'));
 
         try {
             // ユーザーIDの取得
-            $userId = $this->_getUserIdFromSocialAccounts($userModel, $provider, $providerProfile);
+            $userId = $this->_getUserIdFromSocialAccounts($usersTable, $provider, $providerProfile);
             $conditions = [
-                $userModel->aliasField($userModel->primaryKey()) => $userId,
+                $usersTable->aliasField($usersTable->primaryKey()) => $userId,
             ];
             $user = $this->_fetchUserFromDb($conditions);
         } catch (RecordNotFoundException $e) {
@@ -311,16 +323,16 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     protected function _getUserIdFromSocialAccounts($userModel, $provider, $providerProfile)
     {
-        $accountTable = TableRegistry::get($this->getConfig('accountTable'));
+        $accountsTable = TableRegistry::get($this->getConfig('accountTable'));
 
         $fields = $this->getConfig('fields');
         $conditions = [
-            $accountTable->aliasField('table') => $userModel->registryAlias(),
-            $accountTable->aliasField($fields['provider']) => $provider,
-            $accountTable->aliasField($fields['provider_uid']) => $providerProfile->identifier
+            $accountsTable->aliasField('table') => $userModel->registryAlias(),
+            $accountsTable->aliasField($fields['provider']) => $provider,
+            $accountsTable->aliasField($fields['provider_uid']) => $providerProfile->identifier
         ];
 
-        $account = $accountTable->find()
+        $account = $accountsTable->find()
             ->where($conditions)
             ->hydrate(false)
             ->firstOrFail();
@@ -340,14 +352,14 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         list(, $userAlias) = pluginSplit($userModel);
 
         // ユーザーテーブルから取得
-        $table = TableRegistry::get($userModel);
+        $usersTable = TableRegistry::get($userModel);
 
         $scope = $this->getConfig('scope');
         if ($scope) {
             $conditions = array_merge($conditions, $scope);
         }
 
-        $query = $table->find('all');
+        $query = $usersTable->find('all');
         $contain = $this->getConfig('contain');
 
         if ($contain) {
