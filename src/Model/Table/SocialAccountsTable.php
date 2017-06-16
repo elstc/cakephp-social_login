@@ -168,7 +168,6 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
      */
     public function getUserIdFromUserProfile(Table $usersTable, $provider, Hybrid_User_Profile $userProfile)
     {
-        $fields = $this->getConfig('fields');
         $conditions = [
             $this->aliasField('table') => $usersTable->registryAlias(),
             $this->aliasField('provider') => $provider,

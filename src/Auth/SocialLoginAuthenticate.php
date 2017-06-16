@@ -145,12 +145,13 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     /**
      * HybridAuthからユーザプロファイルの取得
      *
-     * @param Hybrid_Auth $hybridAuth a HybridAuth instance.
+     * @param ServerRequest $request Request instance.
      * @return array [$provider, \Hybrid_User_Profile]
      * @throws UnexpectedValueException
      */
-    public function getHybridUserProfile(Hybrid_Auth $hybridAuth)
+    public function getHybridUserProfile(ServerRequest $request)
     {
+        $hybridAuth = HybridAuthFactory::create($request);
         $providers = $hybridAuth->getConnectedProviders();
 
         foreach ($providers as $provider) {
@@ -174,8 +175,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     public function associateWithUser(ServerRequest $request, $user)
     {
-        $this->_init($request);
-        list($provider, $userProfile) = $this->getHybridUserProfile($this->hybridAuth);
+        list($provider, $userProfile) = $this->getHybridUserProfile($request);
         /* @var $userProfile \Hybrid_User_Profile */
 
         $usersTable = TableRegistry::get($this->getConfig('userModel'));
