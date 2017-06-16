@@ -18,7 +18,6 @@ class SocialAccountsTableTest extends TestCase
      */
     public $fixtures = [
         'plugin.elastic/social_login.social_accounts',
-        'plugin.elastic/social_login.foreigns'
     ];
 
     /**
