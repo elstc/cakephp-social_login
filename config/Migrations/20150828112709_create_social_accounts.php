@@ -17,7 +17,7 @@ class CreateSocialAccounts extends AbstractMigration
         $table = $this->table('social_accounts');
         $table->addColumn('table', 'string', [
             'default' => null,
-            'limit' => 255,
+            'limit' => 64,
             'null' => false,
         ]);
         $table->addColumn('foreign_id', 'string', [
@@ -27,12 +27,12 @@ class CreateSocialAccounts extends AbstractMigration
         ]);
         $table->addColumn('provider', 'string', [
             'default' => null,
-            'limit' => 255,
+            'limit' => 64,
             'null' => false,
         ]);
         $table->addColumn('provider_uid', 'string', [
             'default' => null,
-            'limit' => 255,
+            'limit' => 64,
             'null' => false,
         ]);
         $table->addColumn('provider_username', 'string', [
@@ -40,7 +40,7 @@ class CreateSocialAccounts extends AbstractMigration
             'limit' => 255,
             'null' => true,
         ]);
-        $table->addColumn('user_profile', 'text', [
+        $table->addColumn('user_profile', 'blob', [
             'default' => null,
             'null' => true,
         ]);
