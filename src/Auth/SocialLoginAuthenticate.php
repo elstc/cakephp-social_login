@@ -13,6 +13,7 @@ use Cake\Log\Log;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use Cake\Routing\Router;
+use Elastic\SocialLogin\Model\HybridAuthFactory;
 use Hybrid_Auth;
 use Hybrid_Provider_Adapter;
 use Hybrid_User_Profile;
@@ -240,27 +241,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     protected function _init(ServerRequest $request)
     {
-        $request->session()->start();
-        $config = Configure::read('HybridAuth');
-        if (empty($config['base_url'])) {
-            $baseUrl = [
-                'plugin' => 'Elastic/SocialLogin',
-                'controller' => 'SocialLogin',
-                'action' => 'endpoint'
-            ];
-            $config['base_url'] = Router::url($baseUrl, true);
-        }
-        try {
-            $this->hybridAuth = new \Hybrid_Auth($config);
-        } catch (\Exception $e) {
-            if ($e->getCode() < 5) {
-                throw new RuntimeException($e->getMessage());
-            } else {
-                Log::debug($e->getTraceAsString());
-                $this->_registry->Auth->flash($e->getMessage());
-                $this->hybridAuth = new \Hybrid_Auth($config);
-            }
-        }
+        $this->hybridAuth = HybridAuthFactory::create($request);
     }
 
     /**
