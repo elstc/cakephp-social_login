@@ -1,5 +1,5 @@
 {
-  "name": "nojimage/cakephp-social_login",
+  "name": "elstc/cakephp-social_login",
   "description": "SocialLogin plugin for CakePHP",
   "type": "cakephp-plugin",
   "require": {
