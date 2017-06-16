@@ -54,8 +54,7 @@ interface SocialAccountsTableInterface
      * @param Table $usersTable システムユーザーテーブル
      * @param string $provider ログインプロバイダ名
      * @param Hybrid_User_Profile $userProfile プロバイダから取得したユーザープロファイル
-     * @return mixed Users.id
-     * @throws RecordNotFoundException
+     * @return string|null Users.id
      */
     public function getUserIdFromUserProfile(Table $usersTable, $provider, Hybrid_User_Profile $userProfile);
 }

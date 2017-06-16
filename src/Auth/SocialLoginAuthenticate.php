@@ -261,7 +261,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     protected function _getUser($provider, Hybrid_Provider_Adapter $adapter)
     {
         try {
-            $providerProfile = $adapter->getUserProfile();
+            $userProfile = $adapter->getUserProfile();
         } catch (\Exception $e) {
             $adapter->logout();
             throw $e;
@@ -270,17 +270,16 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         $user = false;
         $usersTable = $this->getUsersTable();
 
-        try {
-            // ユーザーIDの取得
-            $userId = $this->getAccountsTable()->getUserIdFromUserProfile($usersTable, $provider, $userProfile);
-            $conditions = [
-                $usersTable->aliasField($usersTable->primaryKey()) => $userId,
-            ];
-            $user = $this->_fetchUserFromDb($conditions);
-        } catch (RecordNotFoundException $e) {
+        // ユーザーIDの取得
+        $userId = $this->getAccountsTable()->getUserIdFromUserProfile($usersTable, $provider, $userProfile);
+        if (empty($userId)) {
             // ユーザーの紐付けがない場合
-            $user = false;
+            return false;
         }
+        $conditions = [
+            $usersTable->aliasField($usersTable->primaryKey()) => $userId,
+        ];
+        $user = $this->_fetchUserFromDb($conditions);
 
         return $user;
     }

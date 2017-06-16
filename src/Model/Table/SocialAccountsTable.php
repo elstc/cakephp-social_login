@@ -177,8 +177,8 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
         $account = $this->find()
             ->where($conditions)
             ->hydrate(false)
-            ->firstOrFail();
+            ->first();
 
-        return $account['foreign_id'];
+        return isset($account['foreign_id']) ? $account['foreign_id'] : null;
     }
 }
