@@ -11,11 +11,13 @@ composer require elstc/cakephp-social_login
 ```
 
 And, Load this plugin.
+
 ```
 bin/cake plugin load -b -r Elastic/SocialLogin
-``
+```
 
 load migrations.
+
 ```
 bin/cake migrations migrate -p Elastic/SocialLogin
 ```
