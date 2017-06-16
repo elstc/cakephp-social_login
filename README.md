@@ -7,7 +7,17 @@ You can install this plugin into your CakePHP application using [composer](http:
 The recommended way to install composer packages is:
 
 ```
-composer require nojimage/cakephp-social_login
+composer require elstc/cakephp-social_login
+```
+
+And, Load this plugin.
+```
+bin/cake plugin load -b -r Elastic/SocialLogin
+``
+
+load migrations.
+```
+bin/cake migrations migrate -p Elastic/SocialLogin
 ```
 
 ## Thanks
