@@ -360,7 +360,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             ->first();
 
         if ($result) {
-            if (isset($this->getConfig('fields.password'))) {
+            if (!empty($this->getConfig('fields.password'))) {
                 unset($result[$this->getConfig('fields.password')]);
             }
 
