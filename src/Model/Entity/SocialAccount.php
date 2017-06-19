@@ -6,6 +6,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\I18n\FrozenTime;
 use Cake\ORM\Entity;
 use Cake\ORM\TableRegistry;
+use Hybrid_User_Profile;
 use stdClass;
 
 /**
@@ -20,7 +21,7 @@ use stdClass;
  * @property FrozenTime $created_at
  * @property FrozenTime $updated_at
  * @property EntityInterface $user
- * @property-read \Hybrid_User_Profile $user_profile_obj
+ * @property-read Hybrid_User_Profile $user_profile_obj
  */
 class SocialAccount extends Entity
 {
@@ -40,32 +41,18 @@ class SocialAccount extends Entity
 
     /**
      *
-     * @return \Hybrid_User_Profile
+     * @return Hybrid_User_Profile
      */
     protected function _getUserProfileObj()
     {
-        $userProfile = json_decode($this->_properties['user_profile']);
+        $userProfile = $this->user_profile;
 
-        $obj = new \Hybrid_User_Profile();
+        $obj = new Hybrid_User_Profile();
         foreach (get_object_vars($obj) as $property => $value) {
-            $obj->{$property} = isset($userProfile->{$property}) ? $userProfile->{$property} : null;
+            $obj->{$property} = isset($userProfile[$property]) ? $userProfile[$property] : null;
         }
 
         return $obj;
-    }
-
-    /**
-     *
-     * @param \Hybrid_User_Profile|string $userProfile recieved user data
-     * @return string
-     */
-    protected function _setUserProfile($userProfile)
-    {
-        if (!is_string($userProfile)) {
-            $userProfile = json_encode($userProfile, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        }
-
-        return $userProfile;
     }
 
     /**

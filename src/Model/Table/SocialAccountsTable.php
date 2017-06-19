@@ -2,6 +2,7 @@
 
 namespace Elastic\SocialLogin\Model\Table;
 
+use Cake\Database\Schema\TableSchema;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
@@ -37,6 +38,18 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
                 ]
             ],
         ]);
+    }
+
+    /**
+     * Setup Schema
+     *
+     * @param TableSchema $schema
+     * @return TableSchema
+     */
+    protected function _initializeSchema(TableSchema $schema)
+    {
+        $schema->columnType('user_profile', 'json');
+        return $schema;
     }
 
     /**
