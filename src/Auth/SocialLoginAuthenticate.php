@@ -37,7 +37,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      */
     public function __construct(ComponentRegistry $registry, array $config = [])
     {
-        $this->config([
+        $this->setConfig([
             'accountTable' => 'Elastic/SocialLogin.SocialAccounts',
             'fields' => [
                 'table' => 'table',
@@ -136,7 +136,10 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         foreach ($providers as $provider) {
             $adapter = $this->hybridAuth->getAdapter($provider);
 
-            return $this->_getUser($provider, $adapter);
+            $user = $this->_getUser($provider, $adapter);
+            if ($user) {
+                return $user;
+            }
         }
 
         return false;
