@@ -37,6 +37,8 @@ class HybridAuthFactory
                 'action' => 'endpoint'
             ];
             $config['base_url'] = Router::url($baseUrl, true);
+        } elseif (!preg_match('!\Ahttps?://!', $config['base_url'])) {
+            $config['base_url'] = Router::url($config['base_url'], true);
         }
         try {
             $hybridAuth = new Hybrid_Auth($config);
