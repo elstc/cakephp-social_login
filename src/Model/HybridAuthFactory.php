@@ -7,20 +7,21 @@ use Cake\Http\ServerRequest;
 use Cake\Log\Log;
 use Cake\Routing\Router;
 use Exception;
-use Hybrid_Auth;
+use Hybridauth\HttpClient\Util;
+use Hybridauth\Hybridauth;
 use RuntimeException;
 
 /**
- * Hybird_Authの生成
+ * Hybridauthの生成
  */
 class HybridAuthFactory
 {
 
     /**
-     * Hybird_Authの生成
+     * Hybridauthの生成
      *
      * @param ServerRequest $request Request instance
-     * @return Hybrid_Auth
+     * @return Hybridauth
      * @throws RuntimeException
      */
     public static function create(ServerRequest $request)
@@ -30,18 +31,14 @@ class HybridAuthFactory
         $hybridAuth = null;
 
         $config = Configure::read('HybridAuth');
-        if (empty($config['base_url'])) {
-            $baseUrl = [
-                'plugin' => 'Elastic/SocialLogin',
-                'controller' => 'SocialLogin',
-                'action' => 'endpoint'
-            ];
-            $config['base_url'] = Router::url($baseUrl, true);
-        } elseif (!preg_match('!\Ahttps?://!', $config['base_url'])) {
-            $config['base_url'] = Router::url($config['base_url'], true);
+        if (empty($config['callback'])) {
+            $config['callback'] = Util::getCurrentUrl();
+        }
+        if (!preg_match('!\Ahttps?://!', $config['callback'])) {
+            $config['callback'] = Router::url($config['callback'], true);
         }
         try {
-            $hybridAuth = new Hybrid_Auth($config);
+            $hybridAuth = new Hybridauth($config);
         } catch (Exception $e) {
             Log::debug($e->getTraceAsString());
             throw new RuntimeException($e->getMessage());

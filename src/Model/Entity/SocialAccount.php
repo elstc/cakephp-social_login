@@ -6,7 +6,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\I18n\FrozenTime;
 use Cake\ORM\Entity;
 use Cake\ORM\TableRegistry;
-use Hybrid_User_Profile;
+use Hybridauth\User\Profile;
 use stdClass;
 
 /**
@@ -21,7 +21,7 @@ use stdClass;
  * @property FrozenTime $created_at
  * @property FrozenTime $updated_at
  * @property EntityInterface $user
- * @property-read Hybrid_User_Profile $user_profile_obj
+ * @property-read Profile $user_profile_obj
  */
 class SocialAccount extends Entity
 {
@@ -41,13 +41,13 @@ class SocialAccount extends Entity
 
     /**
      *
-     * @return Hybrid_User_Profile
+     * @return Profile
      */
     protected function _getUserProfileObj()
     {
         $userProfile = $this->user_profile;
 
-        $obj = new Hybrid_User_Profile();
+        $obj = new Profile();
         foreach (get_object_vars($obj) as $property => $value) {
             $obj->{$property} = isset($userProfile[$property]) ? $userProfile[$property] : null;
         }

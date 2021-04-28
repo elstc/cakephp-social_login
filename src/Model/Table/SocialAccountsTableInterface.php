@@ -5,7 +5,7 @@ namespace Elastic\SocialLogin\Model\Table;
 use Cake\Datasource\EntityInterface;
 use Cake\ORM\Table;
 use Elastic\SocialLogin\Model\Entity\SocialAccount;
-use Hybrid_User_Profile;
+use Hybridauth\User\Profile;
 
 /**
  * アカウントテーブルのインターフェース
@@ -33,10 +33,10 @@ interface SocialAccountsTableInterface
      * @param Table $usersTable
      * @param array $user
      * @param string $provider
-     * @param Hybrid_User_Profile $userProfile
+     * @param Profile $userProfile
      * @return SocialAccount
      */
-    public function generateAssociatedAccount(Table $usersTable, $user, $provider, Hybrid_User_Profile $userProfile);
+    public function generateAssociatedAccount(Table $usersTable, $user, $provider, Profile $userProfile);
 
     /**
      * システムユーザー情報とプロバイダからのアカウント取得
@@ -53,8 +53,8 @@ interface SocialAccountsTableInterface
      *
      * @param Table $usersTable システムユーザーテーブル
      * @param string $provider ログインプロバイダ名
-     * @param Hybrid_User_Profile $userProfile プロバイダから取得したユーザープロファイル
+     * @param Profile $userProfile プロバイダから取得したユーザープロファイル
      * @return string|null Users.id
      */
-    public function getUserIdFromUserProfile(Table $usersTable, $provider, Hybrid_User_Profile $userProfile);
+    public function getUserIdFromUserProfile(Table $usersTable, $provider, Profile $userProfile);
 }

@@ -5,27 +5,26 @@ namespace Elastic\SocialLogin\Auth;
 use Cake\Auth\BaseAuthenticate;
 use Cake\Controller\ComponentRegistry;
 use Cake\Core\Configure;
-use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\Event\Event;
 use Cake\Http\Response;
 use Cake\Http\ServerRequest;
 use Cake\Log\Log;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
-use Cake\Routing\Router;
 use Elastic\SocialLogin\Model\HybridAuthFactory;
-use Hybrid_Auth;
-use Hybrid_Provider_Adapter;
-use Hybrid_User_Profile;
+use Elastic\SocialLogin\Model\Table\SocialAccountsTableInterface;
+use Exception;
+use Hybridauth\Adapter\AdapterInterface;
+use Hybridauth\Hybridauth;
+use Hybridauth\User\Profile;
 use RuntimeException;
 use UnexpectedValueException;
 
 class SocialLoginAuthenticate extends BaseAuthenticate
 {
-
     /**
      *
-     * @var Hybrid_Auth
+     * @var Hybridauth
      */
     protected $hybridAuth = null;
 
@@ -52,31 +51,31 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             // システムアカウントとソーシャルアカウントの紐付け時リダイレクト先
             // @see AssociateAccountsTrait
             'associationReturnTo' => null,
-            // ソーシャルで認証完了後のアプリケーション側ログイン処理のリダイレクト先
-            'hauthLoginAction' => [
-                'plugin' => 'Elastic/SocialLogin',
-                'controller' => 'SocialLogin',
-                'action' => 'authenticated'
-            ],
         ]);
         parent::__construct($registry, $config);
     }
 
     /**
+     * @param string $callbackUrl the callback url
+     * @return void
+     */
+    public function setCallback($callbackUrl)
+    {
+        Configure::write('HybridAuth.callback', $callbackUrl);
+    }
+
+    /**
      * Authenticate a user based on the request information.
      *
-     * @param Request $request Request to get authentication information from.
+     * @param ServerRequest $request Request to get authentication information from.
      * @param Response $response A response object that can have headers added.
      * @return array|bool User array on success, false on failure.
+     * @throws \Hybridauth\Exception\InvalidArgumentException
+     * @throws \Hybridauth\Exception\UnexpectedValueException
      */
     public function authenticate(ServerRequest $request, Response $response)
     {
         $fields = $this->getConfig('fields');
-
-        // プロバイダ未指定の場合は、認証戻りのためユーザーデータを取得する
-        if (!$request->getData($fields['provider'])) {
-            return $this->getUser($request);
-        }
 
         // - プロバイダをチェックして認証リクエストを実行する
         $provider = $this->_checkFields($request, $fields);
@@ -84,11 +83,8 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             return false;
         }
 
-        // 認証後の戻りURLを生成
-        $returnTo = Router::url($this->getConfig('hauthLoginAction'), true);
-
         // 認証リクエストの実行
-        $adapter = $this->authenticateWithHybridAuth($request, $returnTo);
+        $adapter = $this->authenticateWithHybridAuth($request);
 
         if ($adapter) {
             return $this->_getUser($provider, $adapter);
@@ -101,24 +97,24 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * HybridAuthを利用して認証リクエストを実行する
      *
      * @param ServerRequest $request Request instance.
-     * @param string $returnTo リダイレクト先
-     * @return Hybrid_Provider_Adapter
+     * @return AdapterInterface|null
+     * @throws \Hybridauth\Exception\InvalidArgumentException
+     * @throws \Hybridauth\Exception\UnexpectedValueException
      */
-    public function authenticateWithHybridAuth(ServerRequest $request, $returnTo)
+    protected function authenticateWithHybridAuth(ServerRequest $request)
     {
         $fields = $this->getConfig('fields');
         $provider = $this->_checkFields($request, $fields);
         if (!$provider) {
-            return false;
+            return null;
         }
-
-        $params = ['hauth_return_to' => $returnTo];
-        if ($provider === 'OpenID') {
-            $params['openid_identifier'] = $request->getData($fields['openid_identifier']);
-        }
+        $request->session()->write('hybridauth.provider', $provider);
 
         $this->_init($request);
-        $adapter = $this->hybridAuth->authenticate($provider, $params);
+
+        $adapter = $this->hybridAuth->authenticate($provider);
+
+        $request->session()->delete('hybridauth.provider');
 
         return $adapter;
     }
@@ -128,6 +124,8 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      *
      * @param ServerRequest $request Request instance.
      * @return array|bool User array on success, false on failure.
+     * @throws \Hybridauth\Exception\InvalidArgumentException
+     * @throws \Hybridauth\Exception\UnexpectedValueException
      */
     public function getUser(ServerRequest $request)
     {
@@ -149,8 +147,9 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * HybridAuthからユーザプロファイルの取得
      *
      * @param ServerRequest $request Request instance.
-     * @return array [$provider, \Hybrid_User_Profile]
-     * @throws UnexpectedValueException
+     * @return array [$provider, Profile]
+     * @throws \Hybridauth\Exception\InvalidArgumentException
+     * @throws \Hybridauth\Exception\UnexpectedValueException
      */
     public function getHybridUserProfile(ServerRequest $request)
     {
@@ -160,7 +159,6 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         foreach ($providers as $provider) {
             $adapter = $hybridAuth->getAdapter($provider);
             $userProfile = $adapter->getUserProfile();
-            /* @var $userProfile \Hybrid_User_Profile */
             if (!empty($userProfile->identifier)) {
                 return [$provider, $userProfile];
             }
@@ -175,11 +173,14 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * @param ServerRequest $request Request instance.
      * @param array $user ログインユーザーデータ
      * @return bool
+     * @throws \Hybridauth\Exception\InvalidArgumentException
+     * @throws \Hybridauth\Exception\UnexpectedValueException
      */
     public function associateWithUser(ServerRequest $request, $user)
     {
+        /** @var string $provider */
+        /** @var Profile $userProfile */
         list($provider, $userProfile) = $this->getHybridUserProfile($request);
-        /* @var $userProfile \Hybrid_User_Profile */
 
         $usersTable = TableRegistry::get($this->getConfig('userModel'));
         $accountsTable = $this->getAccountsTable();
@@ -187,8 +188,8 @@ class SocialLoginAuthenticate extends BaseAuthenticate
 
         if (!$accountsTable->save($account)) {
             // エラー処理
-            Log::debug($account->errors());
-            throw new \RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
+            Log::debug($account->getErrors());
+            throw new RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
         }
 
         return true;
@@ -213,8 +214,8 @@ class SocialLoginAuthenticate extends BaseAuthenticate
 
         if (!$accountsTable->delete($association)) {
             // エラー処理
-            Log::debug($association->errors());
-            throw new \RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
+            Log::debug($association->getErrors());
+            throw new RuntimeException(__('ソーシャルアカウントの紐付けに失敗しました。'));
         }
 
         return true;
@@ -236,13 +237,17 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * Checks the fields to ensure they are supplied.
      *
      * @param ServerRequest $request The request that contains login information.
-     * @return bool False if the fields have not been supplied. True if they exist.
+     * @param array $fields the request field names
+     * @return string|bool False if the fields have not been supplied. True if they exist.
      */
-    protected function _checkFields(ServerRequest $request)
+    protected function _checkFields(ServerRequest $request, array $fields)
     {
-        $fields = $this->getConfig('fields');
         $provider = $request->getData($fields['provider']);
-        if (empty($provider) ||
+        if (!$provider) {
+            $provider = $request->session()->read('hybridauth.provider');
+        }
+        if (
+            empty($provider) ||
             ($provider === 'OpenID' && !$request->getData($fields['openid_identifier']))
         ) {
             return false;
@@ -258,40 +263,41 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * is called.
      *
      * @param string $provider Provider name.
-     * @param object $adapter Hybrid auth adapter instance.
-     * @return array User record
+     * @param AdapterInterface $adapter Hybrid auth adapter instance.
+     * @return array|null User record
+     * @throws Exception
      */
-    protected function _getUser($provider, Hybrid_Provider_Adapter $adapter)
+    protected function _getUser($provider, AdapterInterface $adapter)
     {
         try {
             $userProfile = $adapter->getUserProfile();
-        } catch (\Exception $e) {
-            $adapter->logout();
+        } catch (Exception $e) {
+            if ($adapter->isConnected()) {
+                $adapter->disconnect();
+            }
             throw $e;
         }
 
-        $user = false;
         $usersTable = $this->getUsersTable();
 
         // ユーザーIDの取得
         $userId = $this->getAccountsTable()->getUserIdFromUserProfile($usersTable, $provider, $userProfile);
         if (empty($userId)) {
             // ユーザーの紐付けがない場合
-            return false;
+            return null;
         }
         $conditions = [
-            $usersTable->aliasField($usersTable->primaryKey()) => $userId,
+            $usersTable->aliasField($usersTable->getPrimaryKey()) => $userId,
         ];
-        $user = $this->_fetchUserFromDb($conditions);
 
-        return $user;
+        return $this->_fetchUserFromDb($conditions);
     }
 
     /**
      * Fetch user from database matching required conditions
      *
      * @param array $conditions Query conditions.
-     * @return array|bool User array on success, false on failure.
+     * @return array|null User array on success, false on failure.
      */
     protected function _fetchUserFromDb(array $conditions)
     {
@@ -303,7 +309,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             $conditions = array_merge($conditions, $scope);
         }
 
-        $query = $usersTable->find('all');
+        $query = $usersTable->find();
         $contain = $this->getConfig('contain');
 
         if ($contain) {
@@ -312,7 +318,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
 
         $result = $query
             ->where($conditions)
-            ->hydrate(false)
+            ->enableHydration(false)
             ->first();
 
         if ($result) {
@@ -323,7 +329,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             return $result;
         }
 
-        return false;
+        return null;
     }
 
     /**
@@ -343,6 +349,8 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * @param Event $event A Event
      * @param array $user logged in user data
      * @return bool
+     * @noinspection PhpUnusedParameterInspection
+     * @noinspection PhpUnused
      */
     public function onLogout(Event $event, array $user)
     {
@@ -357,7 +365,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     public function logoutHybridAuth()
     {
         $this->_init($this->_registry->getController()->request);
-        $this->hybridAuth->logoutAllProviders();
+        $this->hybridAuth->disconnectAllAdapters();
 
         return true;
     }
@@ -371,7 +379,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     }
 
     /**
-     * @return \Elastic\SocialLogin\Model\Table\SocialAccountsTableInterface
+     * @return SocialAccountsTableInterface|Table
      */
     private function getAccountsTable()
     {
