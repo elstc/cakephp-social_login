@@ -7,6 +7,7 @@ use Cake\Http\ServerRequest;
 use Cake\Log\Log;
 use Cake\Routing\Router;
 use Exception;
+use Hybridauth\HttpClient\Util;
 use Hybridauth\Hybridauth;
 use RuntimeException;
 
@@ -31,13 +32,9 @@ class HybridAuthFactory
 
         $config = Configure::read('HybridAuth');
         if (empty($config['callback'])) {
-            $baseUrl = [
-                'plugin' => 'Elastic/SocialLogin',
-                'controller' => 'SocialLogin',
-                'action' => 'endpoint'
-            ];
-            $config['callback'] = Router::url($baseUrl, true);
-        } elseif (!preg_match('!\Ahttps?://!', $config['callback'])) {
+            $config['callback'] = Util::getCurrentUrl();
+        }
+        if (!preg_match('!\Ahttps?://!', $config['callback'])) {
             $config['callback'] = Router::url($config['callback'], true);
         }
         try {

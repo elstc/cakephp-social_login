@@ -12,16 +12,6 @@ use Cake\Controller\Controller;
 class SocialLoginController extends Controller
 {
     /**
-     * Endpoint method
-     *
-     * @return void
-     */
-    public function endpoint()
-    {
-        $this->request->session()->start();
-    }
-
-    /**
      * This action exists just to ensure AuthComponent fetches user info from
      * hybridauth after successful login
      *

@@ -38,13 +38,18 @@ trait AssociateAccountsTrait
     {
         /** @var SocialLoginAuthenticate $auth */
         $auth = $this->Auth->getAuthenticate('Elastic/SocialLogin.SocialLogin');
-        // アソシエーション紐付けのエンドポイントにコールバック先を変更する
-        $auth->setCallbackToAssociationReturnTo();
 
         // HybridAuthのログイン状態をリセット
         $auth->logoutHybridAuth();
 
-        $auth->authenticateWithHybridAuth($this->request);
+        $auth->authenticate($this->request);
+
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        list($provider, $userProfile) = $auth->getHybridUserProfile($this->request);
+        if ($userProfile) {
+            // アソシエーション紐付けのエンドポイントへリダイレクトする
+            return $this->redirect($auth->getConfig('associationReturnTo'));
+        }
     }
 
     /**

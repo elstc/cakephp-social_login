@@ -11,14 +11,12 @@ use Cake\Http\ServerRequest;
 use Cake\Log\Log;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
-use Cake\Routing\Router;
 use Elastic\SocialLogin\Model\HybridAuthFactory;
 use Elastic\SocialLogin\Model\Table\SocialAccountsTableInterface;
 use Exception;
 use Hybridauth\Adapter\AdapterInterface;
 use Hybridauth\Hybridauth;
 use Hybridauth\User\Profile;
-use InvalidArgumentException;
 use RuntimeException;
 use UnexpectedValueException;
 
@@ -53,12 +51,6 @@ class SocialLoginAuthenticate extends BaseAuthenticate
             // システムアカウントとソーシャルアカウントの紐付け時リダイレクト先
             // @see AssociateAccountsTrait
             'associationReturnTo' => null,
-            // ソーシャルで認証完了後のアプリケーション側ログイン処理のリダイレクト先
-            'hauthLoginAction' => [
-                'plugin' => 'Elastic/SocialLogin',
-                'controller' => 'SocialLogin',
-                'action' => 'authenticated'
-            ],
         ]);
         parent::__construct($registry, $config);
     }
@@ -70,18 +62,6 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     public function setCallback($callbackUrl)
     {
         Configure::write('HybridAuth.callback', $callbackUrl);
-    }
-
-    /**
-     * @return void
-     */
-    public function setCallbackToAssociationReturnTo()
-    {
-        $returnTo = $this->getConfig('associationReturnTo');
-        if (empty($returnTo)) {
-            throw new InvalidArgumentException();
-        }
-        $this->setCallback($returnTo);
     }
 
     /**
@@ -97,20 +77,11 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     {
         $fields = $this->getConfig('fields');
 
-        // プロバイダ未指定の場合は、認証戻りのためユーザーデータを取得する
-        if (!$request->getData($fields['provider'])) {
-            return $this->getUser($request);
-        }
-
         // - プロバイダをチェックして認証リクエストを実行する
         $provider = $this->_checkFields($request, $fields);
         if (!$provider) {
             return false;
         }
-
-        // 認証後の戻りURLを生成
-        $returnTo = Router::url($this->getConfig('hauthLoginAction'), true);
-        $this->setCallback($returnTo);
 
         // 認証リクエストの実行
         $adapter = $this->authenticateWithHybridAuth($request);
@@ -130,7 +101,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * @throws \Hybridauth\Exception\InvalidArgumentException
      * @throws \Hybridauth\Exception\UnexpectedValueException
      */
-    public function authenticateWithHybridAuth(ServerRequest $request)
+    protected function authenticateWithHybridAuth(ServerRequest $request)
     {
         $fields = $this->getConfig('fields');
         $provider = $this->_checkFields($request, $fields);
@@ -141,10 +112,11 @@ class SocialLoginAuthenticate extends BaseAuthenticate
 
         $this->_init($request);
 
-        $auth = $this->hybridAuth->authenticate($provider);
+        $adapter = $this->hybridAuth->authenticate($provider);
+
         $request->session()->delete('hybridauth.provider');
 
-        return $auth;
+        return $adapter;
     }
 
     /**
@@ -271,7 +243,11 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     protected function _checkFields(ServerRequest $request, array $fields)
     {
         $provider = $request->getData($fields['provider']);
-        if (empty($provider) ||
+        if (!$provider) {
+            $provider = $request->session()->read('hybridauth.provider');
+        }
+        if (
+            empty($provider) ||
             ($provider === 'OpenID' && !$request->getData($fields['openid_identifier']))
         ) {
             return false;
