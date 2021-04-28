@@ -67,7 +67,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
      * @param string $callbackUrl the callback url
      * @return void
      */
-    protected function setCallback($callbackUrl)
+    public function setCallback($callbackUrl)
     {
         Configure::write('HybridAuth.callback', $callbackUrl);
     }
