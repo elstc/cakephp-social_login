@@ -6,21 +6,22 @@ use Cake\Controller\Component\AuthComponent;
 use Cake\Controller\Component\FlashComponent;
 use Cake\Http\Response;
 use Elastic\SocialLogin\Auth\SocialLoginAuthenticate;
-use InvalidArgumentException;
 
 /**
  * システムユーザーとソーシャルアカウントの紐付け処理用Trait
  *
  * @property AuthComponent $Auth
  * @property FlashComponent $Flash
+ * @noinspection PhpUnused
  */
 trait AssociateAccountsTrait
 {
-
     /**
      * ユーザーと外部アカウントの紐付けリクエスト
      *
      * @return void
+     * @throws \Hybridauth\Exception\InvalidArgumentException
+     * @throws \Hybridauth\Exception\UnexpectedValueException
      * @example inView.
      *
      * ```
@@ -35,24 +36,23 @@ trait AssociateAccountsTrait
      */
     public function associate()
     {
+        /** @var SocialLoginAuthenticate $auth */
         $auth = $this->Auth->getAuthenticate('Elastic/SocialLogin.SocialLogin');
-        /* @var $auth SocialLoginAuthenticate */
-
-        $returnTo = $auth->getConfig('associationReturnTo');
-        if (empty($returnTo)) {
-            throw new InvalidArgumentException();
-        }
+        // アソシエーション紐付けのエンドポイントにコールバック先を変更する
+        $auth->setCallbackToAssociationReturnTo();
 
         // HybridAuthのログイン状態をリセット
         $auth->logoutHybridAuth();
 
-        $auth->authenticateWithHybridAuth($this->request, $returnTo);
+        $auth->authenticateWithHybridAuth($this->request);
     }
 
     /**
      * ユーザーと外部アカウントの紐付け
      *
      * @return Response
+     * @throws \Hybridauth\Exception\InvalidArgumentException
+     * @throws \Hybridauth\Exception\UnexpectedValueException
      */
     public function association()
     {

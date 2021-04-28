@@ -3,12 +3,13 @@
 namespace Elastic\SocialLogin\Model\Table;
 
 use Cake\Database\Schema\TableSchema;
+use Cake\Datasource\EntityInterface;
+use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
 use Elastic\SocialLogin\Model\Entity\SocialAccount;
-use Hybrid_User_Profile;
-use RecordNotFoundException;
+use Hybridauth\User\Profile;
 
 /**
  * SocialAccounts Model
@@ -26,9 +27,9 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
     {
         parent::initialize($config);
 
-        $this->table('social_accounts');
-        $this->displayField('id');
-        $this->primaryKey('id');
+        $this->setTable('social_accounts');
+        $this->setDisplayField('id');
+        $this->setPrimaryKey('id');
 
         $this->addBehavior('Timestamp', [
             'events' => [
@@ -109,10 +110,10 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
      * @param Table $usersTable
      * @param array $user AuthComponent->user()
      * @param string $provider
-     * @param Hybrid_User_Profile $userProfile
+     * @param Profile $userProfile
      * @return SocialAccount
      */
-    public function generateAssociatedAccount(Table $usersTable, $user, $provider, Hybrid_User_Profile $userProfile)
+    public function generateAssociatedAccount(Table $usersTable, $user, $provider, Profile $userProfile)
     {
         $conditions = $this->getFindConditionsByUserAndProvider($usersTable, $user, $provider);
 
@@ -142,7 +143,7 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
      * @param Table $usersTable
      * @param array $user AuthComponent->user()
      * @param string $provider
-     * @return SocialAccount
+     * @return SocialAccount|EntityInterface|null
      */
     public function getAccountByUserAndProvider(Table $usersTable, $user, $provider)
     {
@@ -175,11 +176,11 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
      *
      * @param Table $usersTable システムユーザーテーブル
      * @param string $provider ログインプロバイダ名
-     * @param Hybrid_User_Profile $userProfile プロバイダから取得したユーザープロファイル
+     * @param Profile $userProfile プロバイダから取得したユーザープロファイル
      * @return mixed Users.id
      * @throws RecordNotFoundException
      */
-    public function getUserIdFromUserProfile(Table $usersTable, $provider, Hybrid_User_Profile $userProfile)
+    public function getUserIdFromUserProfile(Table $usersTable, $provider, Profile $userProfile)
     {
         $conditions = [
             $this->aliasField('table') => $usersTable->registryAlias(),
@@ -189,7 +190,7 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
 
         $account = $this->find()
             ->where($conditions)
-            ->hydrate(false)
+            ->enableHydration(false)
             ->first();
 
         return isset($account['foreign_id']) ? $account['foreign_id'] : null;
