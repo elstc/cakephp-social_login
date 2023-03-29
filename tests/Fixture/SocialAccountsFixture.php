@@ -44,16 +44,16 @@ class SocialAccountsFixture extends TestFixture
      * @var array
      */
     public $records = [
-        [
-            'id' => 1,
-            'table' => 'Lorem ipsum dolor sit amet',
-            'foreign_id' => 'Lorem ipsum dolor sit amet',
-            'provider' => 'Lorem ipsum dolor sit amet',
-            'provider_uid' => 'Lorem ipsum dolor sit amet',
-            'provider_username' => 'Lorem ipsum dolor sit amet',
-            'user_profile' => 'Lorem ipsum dolor sit amet, aliquet feugiat. Convallis morbi fringilla gravida, phasellus feugiat dapibus velit nunc, pulvinar eget sollicitudin venenatis cum nullam, vivamus ut a sed, mollitia lectus. Nulla vestibulum massa neque ut et, id hendrerit sit, feugiat in taciti enim proin nibh, tempor dignissim, rhoncus duis vestibulum nunc mattis convallis.',
-            'created_at' => 1440762552,
-            'updated_at' => 1440762552
-        ],
+//        [
+//            'id' => 1,
+//            'table' => 'Users',
+//            'foreign_id' => '1',
+//            'provider' => 'OpenID',
+//            'provider_uid' => 'U12345678',
+//            'provider_username' => 'Foo Bar',
+//            'user_profile' => '{}',
+//            'created_at' => 1440762552,
+//            'updated_at' => 1440762552
+//        ],
     ];
 }
