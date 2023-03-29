@@ -17,7 +17,6 @@ use RuntimeException;
  */
 class HybridAuthFactory
 {
-
     /**
      * Hybridauthの生成
      *

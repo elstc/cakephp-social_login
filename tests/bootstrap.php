@@ -69,7 +69,7 @@ ConnectionManager::setConfig('test', ['url' => getenv('db_dsn')]);
 Configure::write('HybridAuth', [
     'providers' => [
         'OpenID' => [
-            'enabled' => true
+            'enabled' => true,
         ],
     ],
     'debug_mode' => false,

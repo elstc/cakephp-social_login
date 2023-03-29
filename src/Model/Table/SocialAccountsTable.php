@@ -16,7 +16,6 @@ use Hybridauth\User\Profile;
  */
 class SocialAccountsTable extends Table implements SocialAccountsTableInterface
 {
-
     /**
      * Initialize method
      *
@@ -35,8 +34,8 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
             'events' => [
                 'Model.beforeSave' => [
                     'created_at' => 'new',
-                    'updated_at' => 'always'
-                ]
+                    'updated_at' => 'always',
+                ],
             ],
         ]);
     }
@@ -186,7 +185,7 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
         $conditions = [
             $this->aliasField('table') => $usersTable->registryAlias(),
             $this->aliasField('provider') => $provider,
-            $this->aliasField('provider_uid') => $userProfile->identifier
+            $this->aliasField('provider_uid') => $userProfile->identifier,
         ];
 
         $account = $this->find()

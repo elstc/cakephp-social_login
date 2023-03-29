@@ -12,7 +12,6 @@ use Hybridauth\User\Profile;
  */
 interface SocialAccountsTableInterface
 {
-
     /**
      * @param EntityInterface $entity a entity.
      * @param array $options save options

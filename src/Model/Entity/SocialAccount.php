@@ -25,7 +25,6 @@ use stdClass;
  */
 class SocialAccount extends Entity
 {
-
     /**
      * Fields that can be mass assigned using newEntity() or patchEntity().
      * Note that '*' is set to true, which allows all unspecified fields to be
@@ -63,6 +62,6 @@ class SocialAccount extends Entity
     protected function _getUser()
     {
         return TableRegistry::get($this->_properties['table'])
-                ->get($this->_properties['foreign_id']);
+            ->get($this->_properties['foreign_id']);
     }
 }

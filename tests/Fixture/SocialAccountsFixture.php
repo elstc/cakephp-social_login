@@ -1,4 +1,5 @@
 <?php
+
 namespace Elastic\SocialLogin\Test\Fixture;
 
 use Cake\TestSuite\Fixture\TestFixture;
@@ -9,7 +10,6 @@ use Cake\TestSuite\Fixture\TestFixture;
  */
 class SocialAccountsFixture extends TestFixture
 {
-
     /**
      * Fields
      *
@@ -33,9 +33,10 @@ class SocialAccountsFixture extends TestFixture
         ],
         '_options' => [
             'engine' => 'InnoDB',
-            'collation' => 'utf8_general_ci'
+            'collation' => 'utf8_general_ci',
         ],
     ];
+
     // @codingStandardsIgnoreEnd
 
     /**

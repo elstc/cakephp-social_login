@@ -43,7 +43,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
                 'foreign_id' => 'foreign_id',
                 'provider' => 'provider',
                 'provider_uid' => 'provider_uid',
-                'openid_identifier' => 'openid_identifier'
+                'openid_identifier' => 'openid_identifier',
             ],
             // ソーシャルアカウント連携完了のリダイレクト先
             // null => Auth->redirectUrl()
@@ -246,9 +246,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         if (!$provider) {
             $provider = $request->session()->read('hybridauth.provider');
         }
-        if (empty($provider) ||
-            ($provider === 'OpenID' && !$request->getData($fields['openid_identifier']))
-        ) {
+        if (empty($provider) || ($provider === 'OpenID' && !$request->getData($fields['openid_identifier']))) {
             return false;
         }
 
@@ -338,7 +336,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
     public function implementedEvents()
     {
         return [
-            'Auth.logout' => 'onLogout'
+            'Auth.logout' => 'onLogout',
         ];
     }
 

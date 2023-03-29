@@ -1,4 +1,5 @@
 <?php
+
 namespace Elastic\SocialLogin\Test\TestCase\Model\Table;
 
 use Cake\ORM\TableRegistry;
@@ -10,7 +11,6 @@ use Elastic\SocialLogin\Model\Table\SocialAccountsTable;
  */
 class SocialAccountsTableTest extends TestCase
 {
-
     /**
      * Fixtures
      *
