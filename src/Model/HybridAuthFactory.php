@@ -6,6 +6,7 @@ use Cake\Core\Configure;
 use Cake\Http\ServerRequest;
 use Cake\Log\Log;
 use Cake\Routing\Router;
+use Elastic\SocialLogin\Adapter\SessionStorage;
 use Exception;
 use Hybridauth\HttpClient\Util;
 use Hybridauth\Hybridauth;
@@ -38,7 +39,7 @@ class HybridAuthFactory
             $config['callback'] = Router::url($config['callback'], true);
         }
         try {
-            $hybridAuth = new Hybridauth($config);
+            $hybridAuth = new Hybridauth($config, null, new SessionStorage($request->getSession()));
         } catch (Exception $e) {
             Log::debug($e->getTraceAsString());
             throw new RuntimeException($e->getMessage());
