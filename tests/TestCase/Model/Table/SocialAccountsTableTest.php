@@ -17,8 +17,13 @@ class SocialAccountsTableTest extends TestCase
      * @var array
      */
     public $fixtures = [
-        'plugin.elastic/social_login.social_accounts',
+        'plugin.Elastic/SocialLogin.SocialAccounts',
     ];
+
+    /**
+     * @var SocialAccountsTable
+     */
+    private $SocialAccounts;
 
     /**
      * setUp method
@@ -28,8 +33,7 @@ class SocialAccountsTableTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $config = TableRegistry::exists('SocialAccounts') ? [] : ['className' => 'Elastic\SocialLogin\Model\Table\SocialAccountsTable'];
-        $this->SocialAccounts = TableRegistry::get('SocialAccounts', $config);
+        $this->SocialAccounts = TableRegistry::get('Elastic/SocialLogin.SocialAccounts');
     }
 
     /**
@@ -51,7 +55,7 @@ class SocialAccountsTableTest extends TestCase
      */
     public function testInitialize()
     {
-        $this->markTestIncomplete('Not implemented yet.');
+        $this->assertInstanceOf(SocialAccountsTable::class, $this->SocialAccounts);
     }
 
     /**
