@@ -44,12 +44,13 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
     /**
      * Setup Schema
      *
-     * @param TableSchema $schema
+     * @param TableSchema $schema The table definition fetched from database.
      * @return TableSchema
      */
     protected function _initializeSchema(TableSchema $schema)
     {
         $schema->columnType('user_profile', 'json');
+
         return $schema;
     }
 
@@ -107,10 +108,10 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
     /**
      * システムユーザーと紐付けられたソーシャルアカウントの取得
      *
-     * @param Table $usersTable
-     * @param array $user AuthComponent->user()
-     * @param string $provider
-     * @param Profile $userProfile
+     * @param Table $usersTable システムユーザーテーブル
+     * @param array $user 認証情報: AuthComponent->user()
+     * @param string $provider ログインプロバイダ名
+     * @param Profile $userProfile プロバイダから取得したユーザープロファイル
      * @return SocialAccount
      */
     public function generateAssociatedAccount(Table $usersTable, $user, $provider, Profile $userProfile)
@@ -140,10 +141,10 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
     /**
      * システムユーザー情報とプロバイダからのアカウント取得
      *
-     * @param Table $usersTable
-     * @param array $user AuthComponent->user()
-     * @param string $provider
-     * @return SocialAccount|EntityInterface|null
+     * @param Table $usersTable システムユーザーテーブル
+     * @param array $user 認証情報: AuthComponent->user()
+     * @param string $provider ログインプロバイダ名
+     * @return SocialAccount
      */
     public function getAccountByUserAndProvider(Table $usersTable, $user, $provider)
     {
@@ -155,9 +156,9 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
     /**
      * システムユーザー情報とプロバイダからの検索条件
      *
-     * @param Table $usersTable
-     * @param array $user AuthComponent->user()
-     * @param string $provider
+     * @param Table $usersTable システムユーザーテーブル
+     * @param array $user 認証情報: AuthComponent->user()
+     * @param string $provider ログインプロバイダ名
      * @return array
      */
     private function getFindConditionsByUserAndProvider(Table $usersTable, $user, $provider)

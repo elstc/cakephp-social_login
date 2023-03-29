@@ -19,7 +19,7 @@ trait AssociateAccountsTrait
     /**
      * ユーザーと外部アカウントの紐付けリクエスト
      *
-     * @return void
+     * @return null|\Cake\Http\Response
      * @throws \Hybridauth\Exception\InvalidArgumentException
      * @throws \Hybridauth\Exception\UnexpectedValueException
      * @example inView.

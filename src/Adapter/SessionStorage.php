@@ -16,6 +16,9 @@ class SessionStorage implements StorageInterface
      */
     protected $session;
 
+    /**
+     * @param \Cake\Network\Session|\Cake\Http\Session $session an CakePHP's sesssion object
+     */
     public function __construct($session)
     {
         $this->session = $session;
@@ -31,7 +34,10 @@ class SessionStorage implements StorageInterface
     }
 
     /**
-     * @inheritDoc
+     * Retrieve a item from storage
+     *
+     * @param string $key the key of stored value
+     * @return mixed
      */
     public function get($key)
     {
@@ -39,7 +45,11 @@ class SessionStorage implements StorageInterface
     }
 
     /**
-     * @inheritDoc
+     * Add or Update an item to storage
+     *
+     * @param string $key the key of store value
+     * @param string $value the store value
+     * @return void
      */
     public function set($key, $value)
     {
@@ -47,7 +57,10 @@ class SessionStorage implements StorageInterface
     }
 
     /**
-     * @inheritDoc
+     * Delete an item from storage
+     *
+     * @param string $key the key of stored value
+     * @return void
      */
     public function delete($key)
     {
@@ -55,7 +68,10 @@ class SessionStorage implements StorageInterface
     }
 
     /**
-     * @inheritDoc
+     * Delete a item from storage
+     *
+     * @param string $key the key prefix of stored value
+     * @return void
      */
     public function deleteMatch($key)
     {
@@ -71,7 +87,9 @@ class SessionStorage implements StorageInterface
     }
 
     /**
-     * @inheritDoc
+     * Clear all items in storage
+     *
+     * @return void
      */
     public function clear()
     {

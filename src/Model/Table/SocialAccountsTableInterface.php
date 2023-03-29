@@ -30,10 +30,10 @@ interface SocialAccountsTableInterface
     /**
      * システムユーザーと紐付けられたソーシャルアカウントの取得
      *
-     * @param Table $usersTable
-     * @param array $user
-     * @param string $provider
-     * @param Profile $userProfile
+     * @param Table $usersTable システムユーザーテーブル
+     * @param array $user 認証情報: AuthComponent->user()
+     * @param string $provider ログインプロバイダ名
+     * @param Profile $userProfile プロバイダから取得したユーザープロファイル
      * @return SocialAccount
      */
     public function generateAssociatedAccount(Table $usersTable, $user, $provider, Profile $userProfile);
@@ -41,9 +41,9 @@ interface SocialAccountsTableInterface
     /**
      * システムユーザー情報とプロバイダからのアカウント取得
      *
-     * @param Table $usersTable
-     * @param array $user AuthComponent->user()
-     * @param string $provider
+     * @param Table $usersTable システムユーザーテーブル
+     * @param array $user 認証情報: AuthComponent->user()
+     * @param string $provider ログインプロバイダ名
      * @return SocialAccount
      */
     public function getAccountByUserAndProvider(Table $usersTable, $user, $provider);

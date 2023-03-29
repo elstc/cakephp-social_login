@@ -246,8 +246,7 @@ class SocialLoginAuthenticate extends BaseAuthenticate
         if (!$provider) {
             $provider = $request->session()->read('hybridauth.provider');
         }
-        if (
-            empty($provider) ||
+        if (empty($provider) ||
             ($provider === 'OpenID' && !$request->getData($fields['openid_identifier']))
         ) {
             return false;
