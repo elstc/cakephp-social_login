@@ -2,7 +2,6 @@
 
 namespace Elastic\SocialLogin\Test\TestCase\Adapter;
 
-use Cake\Network\Session;
 use Cake\TestSuite\TestCase;
 use Elastic\SocialLogin\Adapter\SessionStorage;
 use Hybridauth\Storage\StorageInterface;
@@ -23,7 +22,11 @@ class SessionStorageTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $session = new Session();
+        if (class_exists('\Cake\Http\Session')) {
+            $session = new \Cake\Http\Session();
+        } else {
+            $session = new \Cake\Network\Session();
+        }
         $this->storage = new SessionStorage($session);
     }
 

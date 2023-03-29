@@ -27,7 +27,9 @@ class HybridAuthFactory
      */
     public static function create(ServerRequest $request)
     {
-        $request->session()->start();
+        $session = self::getSessionFromRequest($request);
+
+        $session->start();
 
         $hybridAuth = null;
 
@@ -39,12 +41,26 @@ class HybridAuthFactory
             $config['callback'] = Router::url($config['callback'], true);
         }
         try {
-            $hybridAuth = new Hybridauth($config, null, new SessionStorage($request->getSession()));
+            $hybridAuth = new Hybridauth($config, null, new SessionStorage($session));
         } catch (Exception $e) {
             Log::debug($e->getTraceAsString());
             throw new RuntimeException($e->getMessage());
         }
 
         return $hybridAuth;
+    }
+
+    /**
+     * @param ServerRequest $request the request
+     * @return \Cake\Network\Session|\Cake\Http\Session
+     */
+    private static function getSessionFromRequest(ServerRequest $request)
+    {
+        // CakePHP <= 3.4
+        if (!method_exists($request, 'getSession')) {
+            return $request->session();
+        }
+
+        return $request->getSession();
     }
 }

@@ -25,6 +25,10 @@ class HybridAuthFactoryTest extends TestCase
         $hauth = HybridAuthFactory::create($request);
 
         $this->assertInstanceOf(Hybridauth::class, $hauth);
-        $this->assertTrue($request->session()->started());
+        if (method_exists($request, 'getSession')) {
+            $this->assertTrue($request->getSession()->started());
+        } else {
+            $this->assertTrue($request->session()->started());
+        }
     }
 }
