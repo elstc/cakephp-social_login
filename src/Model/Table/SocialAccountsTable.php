@@ -48,7 +48,7 @@ class SocialAccountsTable extends Table implements SocialAccountsTableInterface
      */
     protected function _initializeSchema(TableSchema $schema)
     {
-        $schema->columnType('user_profile', 'json');
+        $schema->setColumnType('user_profile', 'json');
 
         return $schema;
     }
